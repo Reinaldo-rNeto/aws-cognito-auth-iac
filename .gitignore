@@ -1,0 +1,12 @@
+# dependências
+node_modules
+
+# Serverless Framework
+.serverless
+
+# variáveis de ambiente locais
+.env
+
+# lockfile gerado pelo npm install (não versionado neste projeto de exemplo)
+package-lock.json
+
