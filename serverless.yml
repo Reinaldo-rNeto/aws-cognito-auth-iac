@@ -1,0 +1,173 @@
+service: aws-cognito-auth-iac
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  environment:
+    TABLE_NAME: !Ref ItemTable
+    USER_POOL_ID: !Ref CognitoUserPool
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:DeleteItem
+            - dynamodb:Scan
+          # A ARN é obtida dinamicamente da tabela criada logo abaixo, em vez
+          # de fixar o ID de uma conta AWS específica — assim o stack pode
+          # ser implantado (deploy) em qualquer conta sem editar o arquivo.
+          Resource:
+            - !GetAtt ItemTable.Arn
+
+plugins:
+  - serverless-offline
+
+functions:
+  # Endpoint público, sem autorização — usado como healthcheck e para
+  # verificar rapidamente se o deploy funcionou.
+  hello:
+    handler: src/hello.handler
+    events:
+      - http:
+          path: /
+          method: get
+
+  # Todos os endpoints abaixo exigem um token JWT válido emitido pelo Cognito
+  # User Pool (header `Authorization: Bearer <id_token>`). O API Gateway
+  # valida o token ANTES de invocar a Lambda — o handler nunca roda se o
+  # token for inválido, expirado ou estiver ausente.
+  insertItem:
+    handler: src/insertItem.handler
+    events:
+      - http:
+          path: /items
+          method: post
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+  fetchItems:
+    handler: src/fetchItems.handler
+    events:
+      - http:
+          path: /items
+          method: get
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+  fetchItem:
+    handler: src/fetchItem.handler
+    events:
+      - http:
+          path: /items/{id}
+          method: get
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+  deleteItem:
+    handler: src/deleteItem.handler
+    events:
+      - http:
+          path: /items/{id}
+          method: delete
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+
+resources:
+  Resources:
+    ItemTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Items-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # User Pool: onde os usuários da API são cadastrados e autenticados.
+    # Login por e-mail (em vez de username), com verificação automática por
+    # e-mail — mais próximo do que uma aplicação real usaria.
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-${self:provider.stage}
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireUppercase: true
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: false
+
+    # App Client: credenciais que o Postman (ou qualquer outro cliente) usa
+    # para autenticar contra o User Pool. Sem client secret, pois o
+    # Authorization Code Grant usado aqui é para clientes públicos (SPA,
+    # Postman) — com secret seria necessário expor um valor confidencial
+    # no cliente.
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:service}-client-${self:provider.stage}
+        UserPoolId: !Ref CognitoUserPool
+        GenerateSecret: false
+        ExplicitAuthFlows:
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        AllowedOAuthFlows:
+          - code
+          - implicit
+        AllowedOAuthScopes:
+          - email
+          - openid
+          - profile
+        AllowedOAuthFlowsUserPoolClient: true
+        CallbackURLs:
+          - https://example.com/callback
+        LogoutURLs:
+          - https://example.com/logout
+        SupportedIdentityProviders:
+          - COGNITO
+
+    # Domínio do Hosted UI do Cognito (tela de login pronta, hospedada pela
+    # AWS) — é para onde o Postman redireciona ao pedir um token via OAuth.
+    # O prefixo precisa ser único em toda a AWS: se o deploy falhar aqui,
+    # troque o valor abaixo (veja o README).
+    CognitoUserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: ${self:service}-${self:provider.stage}
+        UserPoolId: !Ref CognitoUserPool
+
+  Outputs:
+    UserPoolId:
+      Value: !Ref CognitoUserPool
+    UserPoolClientId:
+      Value: !Ref CognitoUserPoolClient
+    UserPoolDomain:
+      Value: !Sub "https://${CognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com"
