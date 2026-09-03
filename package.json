@@ -1,0 +1,31 @@
+{
+  "name": "aws-cognito-auth-iac",
+  "version": "1.0.0",
+  "description": "API REST na AWS (API Gateway + Lambda + DynamoDB) protegida por um autorizador do Amazon Cognito, provisionada como Infraestrutura como Código com o Serverless Framework.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "offline": "serverless offline start --stage local"
+  },
+  "keywords": [
+    "aws",
+    "cognito",
+    "serverless",
+    "lambda",
+    "dynamodb",
+    "api-gateway",
+    "iac"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1125.0",
+    "@aws-sdk/lib-dynamodb": "^3.1125.0",
+    "uuid": "^14.0.2"
+  },
+  "devDependencies": {
+    "dynalite": "^4.0.0",
+    "serverless": "^3.40.0",
+    "serverless-offline": "^13.10.1"
+  }
+}
