@@ -1,0 +1,145 @@
+{
+  "info": {
+    "name": "aws-cognito-auth-iac",
+    "description": "Coleção do Postman para testar a API protegida pelo Cognito. Preencha as variáveis da coleção (aba Variables) com os valores impressos por `npx serverless deploy -v` antes de usar: api_base_url, cognito_domain e cognito_client_id.\n\nComo obter um token: abra a aba Authorization da requisição 'Criar item (POST /items)' (ou de qualquer outra protegida), clique em 'Get New Access Token' — o Postman abre o Hosted UI do Cognito para você logar (ou criar uma conta, no link 'Sign up' da própria tela). Depois de logar, o token é usado automaticamente nas requisições que o referenciam.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_base_url",
+      "value": "https://SUA-API-ID.execute-api.us-east-1.amazonaws.com/dev",
+      "description": "Saída 'endpoints' do `serverless deploy`."
+    },
+    {
+      "key": "cognito_domain",
+      "value": "https://aws-cognito-auth-iac-dev.auth.us-east-1.amazoncognito.com",
+      "description": "Saída 'UserPoolDomain' do `serverless deploy`."
+    },
+    {
+      "key": "cognito_client_id",
+      "value": "SEU_CLIENT_ID",
+      "description": "Saída 'UserPoolClientId' do `serverless deploy`."
+    },
+    {
+      "key": "item_id",
+      "value": "",
+      "description": "Preenchido manualmente com o 'id' retornado por uma criação, para usar nas requisições de busca/remoção."
+    }
+  ],
+  "item": [
+    {
+      "name": "Healthcheck (GET /) — endpoint público",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{api_base_url}}/", "host": ["{{api_base_url}}"], "path": [""] },
+        "auth": { "type": "noauth" }
+      }
+    },
+    {
+      "name": "Criar item (POST /items)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{api_base_url}}/items", "host": ["{{api_base_url}}"], "path": ["items"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"descricao\": \"Teclado mecânico\",\n  \"preco\": 350\n}"
+        },
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            { "key": "grant_type", "value": "implicit", "type": "string" },
+            { "key": "authUrl", "value": "{{cognito_domain}}/login", "type": "string" },
+            { "key": "clientId", "value": "{{cognito_client_id}}", "type": "string" },
+            { "key": "redirect_uri", "value": "https://example.com/callback", "type": "string" },
+            { "key": "scope", "value": "email openid profile", "type": "string" },
+            { "key": "tokenName", "value": "token-cognito-aws-cognito-auth-iac", "type": "string" },
+            { "key": "addTokenTo", "value": "header", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Listar itens (GET /items)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{api_base_url}}/items", "host": ["{{api_base_url}}"], "path": ["items"] },
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            { "key": "grant_type", "value": "implicit", "type": "string" },
+            { "key": "authUrl", "value": "{{cognito_domain}}/login", "type": "string" },
+            { "key": "clientId", "value": "{{cognito_client_id}}", "type": "string" },
+            { "key": "redirect_uri", "value": "https://example.com/callback", "type": "string" },
+            { "key": "scope", "value": "email openid profile", "type": "string" },
+            { "key": "tokenName", "value": "token-cognito-aws-cognito-auth-iac", "type": "string" },
+            { "key": "addTokenTo", "value": "header", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Buscar item por id (GET /items/{id})",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_base_url}}/items/{{item_id}}",
+          "host": ["{{api_base_url}}"],
+          "path": ["items", "{{item_id}}"]
+        },
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            { "key": "grant_type", "value": "implicit", "type": "string" },
+            { "key": "authUrl", "value": "{{cognito_domain}}/login", "type": "string" },
+            { "key": "clientId", "value": "{{cognito_client_id}}", "type": "string" },
+            { "key": "redirect_uri", "value": "https://example.com/callback", "type": "string" },
+            { "key": "scope", "value": "email openid profile", "type": "string" },
+            { "key": "tokenName", "value": "token-cognito-aws-cognito-auth-iac", "type": "string" },
+            { "key": "addTokenTo", "value": "header", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Remover item (DELETE /items/{id})",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{api_base_url}}/items/{{item_id}}",
+          "host": ["{{api_base_url}}"],
+          "path": ["items", "{{item_id}}"]
+        },
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            { "key": "grant_type", "value": "implicit", "type": "string" },
+            { "key": "authUrl", "value": "{{cognito_domain}}/login", "type": "string" },
+            { "key": "clientId", "value": "{{cognito_client_id}}", "type": "string" },
+            { "key": "redirect_uri", "value": "https://example.com/callback", "type": "string" },
+            { "key": "scope", "value": "email openid profile", "type": "string" },
+            { "key": "tokenName", "value": "token-cognito-aws-cognito-auth-iac", "type": "string" },
+            { "key": "addTokenTo", "value": "header", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Criar item sem token (esperado: 401)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{api_base_url}}/items", "host": ["{{api_base_url}}"], "path": ["items"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"descricao\": \"Isso não deveria funcionar\"\n}"
+        },
+        "auth": { "type": "noauth" }
+      }
+    }
+  ]
+}
